@@ -5,17 +5,16 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import createMemoryStore from "memorystore";
-import type { Member } from "@shared/schema";
+import type { User as UserType } from "@shared/schema";
 
-const MemoryStore = createMemoryStore(session);
-
+// Define the User interface for Express
 declare global {
   namespace Express {
     interface User {
       id: number;
       username: string;
       displayName: string;
+      createdAt: Date | null;
     }
   }
 }
@@ -35,23 +34,12 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
-// Mock users for demonstration
-const users = new Map<number, Express.User & { password: string }>();
-users.set(1, {
-  id: 1,
-  username: "admin",
-  displayName: "Administrator",
-  password: "e0f68134ddf3c83ae96070a136a030180eea6b5c1cabc191f4db3f6dd9b248b0ba6cd7946d7ee6c88e3ebf76aea04a4071c4c6e8f41998ed6d0f2d0a73af7798.5bbc9416ef40c96c7acced0afebfd060", // password: "admin123"
-});
-
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: "member-registry-secret-key",
     resave: false,
     saveUninitialized: false,
-    store: new MemoryStore({
-      checkPeriod: 86400000 // prune expired entries every 24h
-    }),
+    store: storage.sessionStore,
     cookie: {
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     }
@@ -64,21 +52,25 @@ export function setupAuth(app: Express) {
   // Set up passport local strategy
   passport.use(
     new LocalStrategy(async (username, password, done) => {
-      // Find user by username
-      const user = Array.from(users.values()).find(u => u.username === username);
-      
-      if (!user) {
-        return done(null, false, { message: "Incorrect username" });
-      }
-      
-      const isValid = await comparePasswords(password, user.password);
-      
-      if (isValid) {
-        // Don't include password in the user object passed on
-        const { password, ...userWithoutPassword } = user;
-        return done(null, userWithoutPassword);
-      } else {
-        return done(null, false, { message: "Incorrect password" });
+      try {
+        // Find user by username
+        const user = await storage.getUserByUsername(username);
+        
+        if (!user) {
+          return done(null, false, { message: "Incorrect username" });
+        }
+        
+        const isValid = await comparePasswords(password, user.password);
+        
+        if (isValid) {
+          // Don't include password in the user object passed on
+          const { password, ...userWithoutPassword } = user;
+          return done(null, userWithoutPassword);
+        } else {
+          return done(null, false, { message: "Incorrect password" });
+        }
+      } catch (error) {
+        return done(error);
       }
     })
   );
@@ -89,14 +81,19 @@ export function setupAuth(app: Express) {
   });
 
   // Deserialize user from session
-  passport.deserializeUser((id: number, done) => {
-    const user = users.get(id as number);
-    if (!user) {
-      return done(new Error(`User with ID ${id} not found`));
+  passport.deserializeUser(async (id: number, done) => {
+    try {
+      const user = await storage.getUser(id);
+      if (!user) {
+        return done(new Error(`User with ID ${id} not found`));
+      }
+      
+      // Don't include password in the user object passed on
+      const { password, ...userWithoutPassword } = user;
+      done(null, userWithoutPassword);
+    } catch (error) {
+      done(error);
     }
-    
-    const { password, ...userWithoutPassword } = user;
-    done(null, userWithoutPassword);
   });
 
   // Login route
