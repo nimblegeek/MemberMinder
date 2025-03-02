@@ -1,9 +1,24 @@
 import { members, type Member, type InsertMember, type User, type InsertUser, users } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { eq, and, desc } from "drizzle-orm";
+import pg from "pg";
+import ConnectPgSimple from "connect-pg-simple";
 
-// Create memory store for sessions
+const { Pool } = pg;
 const MemoryStore = createMemoryStore(session);
+
+// Set up PostgreSQL connection
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+// Set up the Drizzle ORM
+const db = drizzle(pool);
+
+// PostgreSQL session store
+const PostgresSessionStore = ConnectPgSimple(session);
 
 export interface IStorage {
   // Member operations
@@ -23,6 +38,7 @@ export interface IStorage {
   sessionStore: session.Store;
 }
 
+// In-memory storage implementation
 export class MemStorage implements IStorage {
   private members: Map<number, Member>;
   private users: Map<number, User>;
@@ -51,7 +67,7 @@ export class MemStorage implements IStorage {
   async createMember(insertMember: InsertMember): Promise<Member> {
     const id = this.memberId++;
     const dateAdded = new Date();
-    const member: Member = { 
+    const member = { 
       ...insertMember, 
       id, 
       dateAdded,
@@ -71,8 +87,7 @@ export class MemStorage implements IStorage {
   }
 
   async verifySSN(ssn: string): Promise<boolean> {
-    // Mock SSN verification - simulate API call to IRS database
-    // In a real app, this would connect to an actual verification service
+    // Mock SSN verification - simulate API call to verification service
     return new Promise((resolve) => {
       setTimeout(() => {
         // Generate random success/failure to simulate verification
@@ -95,12 +110,8 @@ export class MemStorage implements IStorage {
 
   // User authentication methods
   async getUserByUsername(username: string): Promise<User | undefined> {
-    for (const user of this.users.values()) {
-      if (user.username === username) {
-        return user;
-      }
-    }
-    return undefined;
+    const users = Array.from(this.users.values());
+    return users.find(user => user.username === username);
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -110,11 +121,90 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userId++;
     const createdAt = new Date();
-    const user: User = { ...insertUser, id, createdAt };
+    const user = { ...insertUser, id, createdAt };
     this.users.set(id, user);
     return user;
   }
 }
 
+// Database storage implementation using PostgreSQL and Drizzle ORM
+export class DatabaseStorage implements IStorage {
+  public sessionStore: session.Store;
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true
+    });
+  }
+
+  async getMembers(): Promise<Member[]> {
+    return await db.select().from(members).orderBy(desc(members.dateAdded));
+  }
+
+  async getMember(id: number): Promise<Member | undefined> {
+    const results = await db.select().from(members).where(eq(members.id, id));
+    return results.length > 0 ? results[0] : undefined;
+  }
+
+  async createMember(insertMember: InsertMember): Promise<Member> {
+    const result = await db.insert(members).values({
+      ...insertMember,
+      verified: insertMember.verified || false
+    }).returning();
+    
+    return result[0];
+  }
+
+  async updateMember(id: number, memberUpdate: Partial<Member>): Promise<Member | undefined> {
+    const results = await db.update(members)
+      .set(memberUpdate)
+      .where(eq(members.id, id))
+      .returning();
+    
+    return results.length > 0 ? results[0] : undefined;
+  }
+
+  async verifySSN(ssn: string): Promise<boolean> {
+    // Mock SSN verification - simulate API call to verification service
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // Generate random success/failure to simulate verification
+        // 70% chance of success
+        const isVerified = Math.random() > 0.3;
+        resolve(isVerified);
+      }, 1000); // simulate network latency
+    });
+  }
+
+  async getMembersByFilter(filter: { verified?: boolean }): Promise<Member[]> {
+    if (filter.verified !== undefined) {
+      return await db.select().from(members).where(eq(members.verified, filter.verified));
+    }
+    
+    return await db.select().from(members);
+  }
+
+  // User authentication methods
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const results = await db.select().from(users).where(eq(users.username, username));
+    return results.length > 0 ? results[0] : undefined;
+  }
+
+  async getUser(id: number): Promise<User | undefined> {
+    const results = await db.select().from(users).where(eq(users.id, id));
+    return results.length > 0 ? results[0] : undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const result = await db.insert(users).values({
+      ...insertUser
+    }).returning();
+    
+    return result[0];
+  }
+}
+
 // Create and export a storage instance
-export const storage = new MemStorage();
+// Switch from MemStorage to DatabaseStorage
+export const storage = new DatabaseStorage();
