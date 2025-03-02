@@ -25,58 +25,48 @@ import { InfoIcon } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 
-// US states for dropdown
-const US_STATES = [
-  { value: "AL", label: "Alabama" },
-  { value: "AK", label: "Alaska" },
-  { value: "AZ", label: "Arizona" },
-  { value: "AR", label: "Arkansas" },
-  { value: "CA", label: "California" },
-  { value: "CO", label: "Colorado" },
-  { value: "CT", label: "Connecticut" },
-  { value: "DE", label: "Delaware" },
-  { value: "FL", label: "Florida" },
-  { value: "GA", label: "Georgia" },
-  { value: "HI", label: "Hawaii" },
-  { value: "ID", label: "Idaho" },
-  { value: "IL", label: "Illinois" },
-  { value: "IN", label: "Indiana" },
-  { value: "IA", label: "Iowa" },
-  { value: "KS", label: "Kansas" },
-  { value: "KY", label: "Kentucky" },
-  { value: "LA", label: "Louisiana" },
-  { value: "ME", label: "Maine" },
-  { value: "MD", label: "Maryland" },
-  { value: "MA", label: "Massachusetts" },
-  { value: "MI", label: "Michigan" },
-  { value: "MN", label: "Minnesota" },
-  { value: "MS", label: "Mississippi" },
-  { value: "MO", label: "Missouri" },
-  { value: "MT", label: "Montana" },
-  { value: "NE", label: "Nebraska" },
-  { value: "NV", label: "Nevada" },
-  { value: "NH", label: "New Hampshire" },
-  { value: "NJ", label: "New Jersey" },
-  { value: "NM", label: "New Mexico" },
-  { value: "NY", label: "New York" },
-  { value: "NC", label: "North Carolina" },
-  { value: "ND", label: "North Dakota" },
-  { value: "OH", label: "Ohio" },
-  { value: "OK", label: "Oklahoma" },
-  { value: "OR", label: "Oregon" },
-  { value: "PA", label: "Pennsylvania" },
-  { value: "RI", label: "Rhode Island" },
-  { value: "SC", label: "South Carolina" },
-  { value: "SD", label: "South Dakota" },
-  { value: "TN", label: "Tennessee" },
-  { value: "TX", label: "Texas" },
-  { value: "UT", label: "Utah" },
-  { value: "VT", label: "Vermont" },
-  { value: "VA", label: "Virginia" },
-  { value: "WA", label: "Washington" },
-  { value: "WV", label: "West Virginia" },
-  { value: "WI", label: "Wisconsin" },
-  { value: "WY", label: "Wyoming" },
+// Swedish municipalities (kommuner) for dropdown
+const SWEDISH_MUNICIPALITIES = [
+  { value: "Stockholm", label: "Stockholm" },
+  { value: "Göteborg", label: "Göteborg" },
+  { value: "Malmö", label: "Malmö" },
+  { value: "Uppsala", label: "Uppsala" },
+  { value: "Västerås", label: "Västerås" },
+  { value: "Örebro", label: "Örebro" },
+  { value: "Linköping", label: "Linköping" },
+  { value: "Helsingborg", label: "Helsingborg" },
+  { value: "Jönköping", label: "Jönköping" },
+  { value: "Norrköping", label: "Norrköping" },
+  { value: "Lund", label: "Lund" },
+  { value: "Umeå", label: "Umeå" },
+  { value: "Gävle", label: "Gävle" },
+  { value: "Borås", label: "Borås" },
+  { value: "Södertälje", label: "Södertälje" },
+  { value: "Eskilstuna", label: "Eskilstuna" },
+  { value: "Halmstad", label: "Halmstad" },
+  { value: "Växjö", label: "Växjö" },
+  { value: "Karlstad", label: "Karlstad" },
+  { value: "Sundsvall", label: "Sundsvall" },
+  { value: "Östersund", label: "Östersund" },
+  { value: "Trollhättan", label: "Trollhättan" },
+  { value: "Luleå", label: "Luleå" },
+  { value: "Kalmar", label: "Kalmar" },
+  { value: "Karlskrona", label: "Karlskrona" },
+  { value: "Skellefteå", label: "Skellefteå" },
+  { value: "Kristianstad", label: "Kristianstad" },
+  { value: "Falun", label: "Falun" },
+  { value: "Skövde", label: "Skövde" },
+  { value: "Karlskoga", label: "Karlskoga" },
+  { value: "Kiruna", label: "Kiruna" },
+  { value: "Visby", label: "Visby" },
+  { value: "Ystad", label: "Ystad" },
+  { value: "Mora", label: "Mora" },
+  { value: "Varberg", label: "Varberg" },
+  { value: "Nyköping", label: "Nyköping" },
+  { value: "Hudiksvall", label: "Hudiksvall" },
+  { value: "Borlänge", label: "Borlänge" },
+  { value: "Örnsköldsvik", label: "Örnsköldsvik" },
+  { value: "Motala", label: "Motala" },
 ];
 
 export default function MemberForm() {
@@ -90,13 +80,13 @@ export default function MemberForm() {
     name: "",
     email: "",
     phone: "",
-    ssn: "",
+    personnummer: "",
     dob: "",
     address: {
       street: "",
       city: "",
-      state: "",
-      zip: ""
+      municipality: "",
+      postalCode: ""
     },
     verified: false
   };
@@ -118,8 +108,8 @@ export default function MemberForm() {
       toast({
         title: "Member Added",
         description: result.verificationResult.verified 
-          ? "Member added and SSN verified successfully." 
-          : "Member added but SSN verification pending.",
+          ? "Member added and personnummer verified successfully." 
+          : "Member added but personnummer verification pending.",
         variant: "default",
       });
       
@@ -185,8 +175,9 @@ export default function MemberForm() {
                 <FormItem>
                   <FormLabel>Phone Number</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="555-123-4567" />
+                    <Input {...field} placeholder="+46 70 123 45 67" />
                   </FormControl>
+                  <p className="text-xs text-gray-500 mt-1">Format: +46 XX XXX XX XX or 07X-XXX XX XX</p>
                   <FormMessage />
                 </FormItem>
               )}
@@ -210,18 +201,18 @@ export default function MemberForm() {
         
         {/* Verification Section */}
         <div>
-          <h3 className="text-lg font-medium text-gray-700 mb-4">Social Security Verification</h3>
+          <h3 className="text-lg font-medium text-gray-700 mb-4">Personnummer Verification</h3>
           <div className="grid grid-cols-1 gap-4">
             <FormField
               control={form.control}
-              name="ssn"
+              name="personnummer"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Social Security Number</FormLabel>
+                  <FormLabel>Personnummer</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="123-45-6789" />
+                    <Input {...field} placeholder="YYMMDD-XXXX" />
                   </FormControl>
-                  <p className="text-xs text-gray-500 mt-1">Format: XXX-XX-XXXX</p>
+                  <p className="text-xs text-gray-500 mt-1">Format: YYMMDD-XXXX</p>
                   <FormMessage />
                 </FormItem>
               )}
@@ -231,7 +222,7 @@ export default function MemberForm() {
               <div className="flex items-start">
                 <InfoIcon className="h-5 w-5 text-blue-600 mt-0.5" />
                 <p className="ml-3 text-sm text-blue-700">
-                  The system will verify the SSN against the national IRS database. Verification typically takes a few seconds.
+                  The system will verify the personnummer against the Swedish national database. Verification typically takes a few seconds.
                 </p>
               </div>
             </div>
@@ -249,7 +240,7 @@ export default function MemberForm() {
                 <FormItem className="col-span-2">
                   <FormLabel>Street Address</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="123 Main St" />
+                    <Input {...field} placeholder="Storgatan 1" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -263,7 +254,7 @@ export default function MemberForm() {
                 <FormItem>
                   <FormLabel>City</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="New York" />
+                    <Input {...field} placeholder="Stockholm" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -272,23 +263,23 @@ export default function MemberForm() {
             
             <FormField
               control={form.control}
-              name="address.state"
+              name="address.municipality"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>State</FormLabel>
+                  <FormLabel>Municipality</FormLabel>
                   <Select 
                     onValueChange={field.onChange} 
                     defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select State" />
+                        <SelectValue placeholder="Select Municipality" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {US_STATES.map((state) => (
-                        <SelectItem key={state.value} value={state.value}>
-                          {state.label}
+                      {SWEDISH_MUNICIPALITIES.map((municipality) => (
+                        <SelectItem key={municipality.value} value={municipality.value}>
+                          {municipality.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -300,12 +291,12 @@ export default function MemberForm() {
             
             <FormField
               control={form.control}
-              name="address.zip"
+              name="address.postalCode"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Zip Code</FormLabel>
+                  <FormLabel>Postal Code</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="10001" />
+                    <Input {...field} placeholder="123 45" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
