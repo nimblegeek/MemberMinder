@@ -42,7 +42,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute path="/" component={ProtectedLayout} />
+      <ProtectedRoute path="/*" component={ProtectedLayout} />
       <Route component={NotFound} />
     </Switch>
   );
