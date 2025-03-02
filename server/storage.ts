@@ -51,7 +51,12 @@ export class MemStorage implements IStorage {
   async createMember(insertMember: InsertMember): Promise<Member> {
     const id = this.memberId++;
     const dateAdded = new Date();
-    const member: Member = { ...insertMember, id, dateAdded };
+    const member: Member = { 
+      ...insertMember, 
+      id, 
+      dateAdded,
+      verified: insertMember.verified || null 
+    };
     this.members.set(id, member);
     return member;
   }
