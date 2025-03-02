@@ -57,18 +57,22 @@ export default function MemberTable({ members, onEditMember }: MemberTableProps)
       } else if (sortBy === "email") {
         return a.email.localeCompare(b.email);
       } else if (sortBy === "date") {
-        return new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime();
+        return (b.dateAdded ? new Date(b.dateAdded).getTime() : 0) - 
+               (a.dateAdded ? new Date(a.dateAdded).getTime() : 0);
       }
       return 0;
     });
   
-  // Mask SSN for display
-  const maskSSN = (ssn: string) => {
-    const parts = ssn.split('-');
-    if (parts.length === 3) {
-      return `XXX-XX-${parts[2]}`;
+  // Mask personnummer for display (Swedish format: YYMMDD-XXXX)
+  const maskPersonnummer = (personnummer: string) => {
+    if (!personnummer) return 'XXXXXX-XXXX';
+    
+    const parts = personnummer.split('-');
+    if (parts.length === 2) {
+      return `XXXXXX-${parts[1].slice(-4)}`;
     }
-    return 'XXX-XX-XXXX';
+    // If no hyphen or unexpected format, mask everything
+    return 'XXXXXX-XXXX';
   };
   
   return (
@@ -121,7 +125,7 @@ export default function MemberTable({ members, onEditMember }: MemberTableProps)
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Phone</TableHead>
-              <TableHead>SSN</TableHead>
+              <TableHead>Personnummer</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Added</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -145,14 +149,14 @@ export default function MemberTable({ members, onEditMember }: MemberTableProps)
                   </TableCell>
                   <TableCell className="text-sm text-gray-500">{member.email}</TableCell>
                   <TableCell className="text-sm text-gray-500">{member.phone}</TableCell>
-                  <TableCell className="text-sm text-gray-500">{maskSSN(member.ssn)}</TableCell>
+                  <TableCell className="text-sm text-gray-500">{maskPersonnummer(member.personnummer)}</TableCell>
                   <TableCell>
-                    <Badge variant={member.verified ? "success" : "warning"}>
+                    <Badge variant={member.verified ? "default" : "secondary"}>
                       {member.verified ? "Verified" : "Pending"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm text-gray-500">
-                    {format(new Date(member.dateAdded), 'MM/dd/yyyy')}
+                    {member.dateAdded ? format(new Date(member.dateAdded), 'yyyy-MM-dd') : '-'}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button 
