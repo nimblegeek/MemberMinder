@@ -48,8 +48,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate request body
       const memberData = insertMemberSchema.parse(req.body);
       
-      // Verify SSN
-      const isVerified = await storage.verifySSN(memberData.ssn);
+      // Verify personnummer
+      const isVerified = await storage.verifySSN(memberData.personnummer);
       
       // Create member with verification status
       const newMember = await storage.createMember({
@@ -62,8 +62,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         verificationResult: {
           verified: isVerified,
           message: isVerified 
-            ? "SSN verification successful" 
-            : "SSN verification pending"
+            ? "Personnummer verification successful" 
+            : "Personnummer verification pending"
         }
       });
     } catch (error) {
@@ -116,27 +116,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Mock SSN verification endpoint (for demonstration) - requires authentication
+  // Mock personnummer verification endpoint (for demonstration) - requires authentication
   app.post("/api/verify-ssn", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { ssn } = req.body;
       
       if (!ssn || typeof ssn !== 'string') {
-        return res.status(400).json({ message: "SSN is required" });
+        return res.status(400).json({ message: "Personnummer is required" });
       }
       
-      // Validate SSN format
-      if (!/^\d{3}-\d{2}-\d{4}$/.test(ssn)) {
+      // Validate personnummer format (Swedish format YYMMDD-XXXX)
+      if (!/^\d{6}-\d{4}$/.test(ssn)) {
         return res.status(400).json({ 
-          message: "Invalid SSN format. Use XXX-XX-XXXX format." 
+          message: "Invalid personnummer format. Use YYMMDD-XXXX format." 
         });
       }
       
       const isVerified = await storage.verifySSN(ssn);
       res.json({ verified: isVerified });
     } catch (error) {
-      console.error("Error verifying SSN:", error);
-      res.status(500).json({ message: "Failed to verify SSN" });
+      console.error("Error verifying personnummer:", error);
+      res.status(500).json({ message: "Failed to verify personnummer" });
     }
   });
 
