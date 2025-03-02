@@ -4,12 +4,15 @@ import { storage } from "./storage";
 import { insertMemberSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+import { setupAuth, isAuthenticated } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // API routes for members
+  // Set up authentication
+  setupAuth(app);
+  // API routes for members - protected by authentication
   
-  // GET all members
-  app.get("/api/members", async (_req: Request, res: Response) => {
+  // GET all members - requires authentication
+  app.get("/api/members", isAuthenticated, async (_req: Request, res: Response) => {
     try {
       const members = await storage.getMembers();
       res.json(members);
@@ -19,8 +22,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GET a single member by ID
-  app.get("/api/members/:id", async (req: Request, res: Response) => {
+  // GET a single member by ID - requires authentication
+  app.get("/api/members/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -39,8 +42,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // POST to create a new member
-  app.post("/api/members", async (req: Request, res: Response) => {
+  // POST to create a new member - requires authentication
+  app.post("/api/members", isAuthenticated, async (req: Request, res: Response) => {
     try {
       // Validate request body
       const memberData = insertMemberSchema.parse(req.body);
@@ -78,8 +81,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // PATCH to update a member
-  app.patch("/api/members/:id", async (req: Request, res: Response) => {
+  // PATCH to update a member - requires authentication
+  app.patch("/api/members/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -101,8 +104,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GET filtered members (for reporting)
-  app.get("/api/members/filter/verified", async (req: Request, res: Response) => {
+  // GET filtered members (for reporting) - requires authentication
+  app.get("/api/members/filter/verified", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const verified = req.query.status === 'true';
       const members = await storage.getMembersByFilter({ verified });
@@ -113,8 +116,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Mock SSN verification endpoint (for demonstration)
-  app.post("/api/verify-ssn", async (req: Request, res: Response) => {
+  // Mock SSN verification endpoint (for demonstration) - requires authentication
+  app.post("/api/verify-ssn", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { ssn } = req.body;
       
